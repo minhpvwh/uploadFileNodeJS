@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+
+
+
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="https://malsup.github.io/min/jquery.form.min.js"></script>
+<link href='https://fonts.googleapis.com/css?family=Actor' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<style>
+ html,
+body {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	display: flex;
+	flex-flow: row nowrap;
+	align-items: center;
+	justify-content: center;
+
+
+
+	font-family: "Raleway", sans-serif;
+}
+
+#main {
+	position: relative;
+	width: 550px;
+	height: 330px;
+
+	left: 30px;
+
+	border-radius: 10px;
+
+	background-color: white;
+}
+
+#head {
+	opacity: 0.95;
+}
+
+#right {
+	position: absolute;
+	width: calc(60% - 40px);
+	height: 100%;
+	top: 20%;
+	left: 20%;
+
+	display: flex;
+	flex-flow: column nowrap;
+
+	padding-left: 20px;
+}
+
+#right form {
+	display: flex;
+	flex-flow: column nowrap;
+
+	width: 100%;
+}
+
+#right form input[type="file"],
+#right form select {
+	
+	border: none;
+	border-bottom: 1.5px solid #ccc;
+	
+	padding: 5px;
+	margin-top: 2.5px;
+	position: relative;
+}
+
+#right form .form-field {
+	display: flex;
+	flex-flow: column nowrap;
+	justify-content: center;
+	
+	margin-bottom: 12.5px;
+}
+
+#right form {
+	display: flex;
+	justify-content: space-between;
+}
+
+#right form select {
+	width: 45%;
+}
+
+#right form input[type="submit"] {
+	background: green;
+	padding: 5px;
+	border: none;
+	border-radius: 50px;
+	color: white;
+	font-weight: 400;
+	font-size: 12pt;
+	margin-top: 10px;
+}
+
+
+
+
+</style>
+<body>
+  <div hidden>
+        Number of users connected with you: <b id="number-of-connected-users">0</b>
+
+        <br><br>
+
+        <div id="hide-on-datachannel-opened">
+            <input type="text" id="room-id" placeholder="room-id">
+            <button id="open-room">Open</button>
+        </div>
+    </div>
+  <main id="main">
+	<section id="right">
+		<form id="form-upload" method="post" action="/upload"  enctype="multipart/form-data">
+			<div id="form-card" class="form-field">
+				<input type="file" name="file" id="select-file"/>
+			</div>
+			<input type="submit"  value="Upload" id="submit-upload"/>
+		</form>
+		<div class="progress" id="progress_bar">
+		  <div class="progress-bar progress-bar-striped active"  role="progressbar"
+		  aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width:100%">
+		 Processing on the system
+			
+		  </div>
+		</div>
+			  <div id="progress" style="display:none">
+				<div id="bar"></div>
+				<div id="percent"></div>
+			  </div>
+			  <div id="result">
+			  </div>
+			  
+	</section>
+</main>
+
+ 
+	
+	<script>
+	$('#progress_bar').hide();
+	function UrlExists(url, cb){
+    jQuery.ajax({
+        url:      url,
+        dataType: 'text',
+        type:     'GET',
+        complete:  function(xhr){
+            if(typeof cb === 'function')
+               cb.apply(this, [xhr.status]);
+        }
+    });
+}
+	
+	 var bar = $('#bar');
+  var percent = $('#percent');
+  var result = $('#result');
+  var percentValue = "0%";
+  $('#form-upload').ajaxForm({
+      // Do something before uploading
+      beforeUpload: function() {
+        result.empty();
+        percentValue = "0%";
+        bar.width = percentValue;
+        percent.html(percentValue);
+      },
+      // Do somthing while uploading
+      uploadProgress: function(event, position, total, percentComplete) {
+	  $('#form-upload').hide();
+        var percentValue = percentComplete + '%';
+        bar.width(percentValue)
+        percent.html(percentValue);
+      },
+      // Do something while uploading file finish
+      success: function() {
+        var percentValue = '100%';
+        bar.width(percentValue)
+        percent.html(percentValue);
+      },
+      // Add response text to div #result when uploading complete
+      complete: function(xhr) {
+       	 var refreshIntervalId = setInterval(function(){ 
+		UrlExists('https://'+window.location.host+'/' + xhr.responseText, function(status){
+			if(status === 200){
+			    $('#result').html('<iframe style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;" src="https://'+window.location.host+'/' + xhr.responseText+'" frameborder="0" scrolling="no" id="myFrame"></iframe>');
+				$('#progress_bar').hide();
+				$('#form-upload').hide();
+				clearInterval(refreshIntervalId);
+			}
+			else if(status === 404){
+			$('#progress_bar').show();
+			   // 404 not found
+			}
+		});
+	  }, 5000);
+      }
+  });
+  
+	
+	
+
+	</script>
+	
+<script src="https://pantechonline.com:9001/dist/RTCMultiConnection.min.js"></script>
+<script src="https://pantechonline.com:9001/socket.io/socket.io.js"></script>
+<script>
+            // ......................................................
+            // .......................UI Code........................
+            // ......................................................
+
+            (function() {
+                disableInputButtons();
+
+                connection.open(document.getElementById('room-id').value, function() {
+                   // showRoomURL(connection.sessionid);
+                });
+            });
+            
+            
+            (function() {
+                disableInputButtons();
+                connection.join(document.getElementById('room-id').value);
+            });
+
+            (function() {
+                disableInputButtons();
+                connection.openOrJoin(document.getElementById('room-id').value, function(isRoomExists, roomid) {
+                    if(!isRoomExists) {
+                        showRoomURL(roomid);
+                    }
+                });
+            });
+
+					var connection = new RTCMultiConnection();
+
+					connection.socketURL = 'https://pantechonline.com:9001/';
+					connection.socketMessageEvent = 'powerpoint';
+
+					connection.enableFileSharing = false;
+					connection.session = {
+						audio: true,
+						video: true,
+						data: true
+					};
+					connection.sdpConstraints.mandatory = {
+						OfferToReceiveAudio: true,
+						OfferToReceiveVideo: true
+					};
+					connection.dontCaptureUserMedia = true;
+					if (location.hash.replace('#', '').length) {
+						var roomid = location.hash.replace('#', '');
+						connection.join(roomid);
+					}
+
+					connection.onUserStatusChanged = function(event) {
+						var infoBar = document.getElementById('hide-on-datachannel-opened');
+						if (event.status == 'online') {
+							infoBar.innerHTML = event.userid + ' is <b>online</b>.';
+						}
+
+						if (event.status == 'offline') {
+							infoBar.innerHTML = event.userid + ' is <b>offline</b>.';
+						}
+
+						numberOfConnectedUsers.innerHTML = connection.getAllParticipants().length;
+					};
+
+					var numberOfConnectedUsers = document.getElementById('number-of-connected-users');
+					connection.onopen = function(event) {
+						var infoBar = document.getElementById('hide-on-datachannel-opened');
+						infoBar.innerHTML = '<b>' + event.userid + '</b> is ready to collaborate with you.';
+
+						//if (designer.pointsLength <= 0) {
+							// make sure that remote user gets all drawings synced.
+							//setTimeout(function() {
+								//connection.send('plz-sync-points');
+							//}, 1000);}
+
+						numberOfConnectedUsers.innerHTML = connection.getAllParticipants().length;
+					};
+
+					connection.onclose = connection.onerror = connection.onleave = function() {
+						numberOfConnectedUsers.innerHTML = connection.getAllParticipants().length;
+					};
+
+					connection.onmessage = function(event) {
+						if (event.data === 'plz-sync-points') {
+							designer.sync();
+							return;
+						}
+
+						designer.syncData(event.data);
+					};
+            // ......................................................
+            // ......................Handling Room-ID................
+            // ......................................................
+
+            function showRoomURL(roomid) {
+                var roomHashURL = '#' + roomid;
+                var roomQueryStringURL = '?roomid=' + roomid;
+
+                var html = '<h2>Unique URL for your room:</h2><br>';
+
+                html += 'Hash URL: <a href="' + roomHashURL + '" target="_blank">' + roomHashURL + '</a>';
+                html += '<br>';
+                html += 'QueryString URL: <a href="' + roomQueryStringURL + '" target="_blank">' + roomQueryStringURL + '</a>';
+
+                var roomURLsDiv = document.getElementById('room-urls');
+                roomURLsDiv.innerHTML = html;
+
+                roomURLsDiv.style.display = 'block';
+            }
+
+            (function() {
+                var params = {},
+                    r = /([^&=]+)=?([^&]*)/g;
+
+                function d(s) {
+                    return decodeURIComponent(s.replace(/\+/g, ' '));
+                }
+                var match, search = window.location.search;
+                while (match = r.exec(search.substring(1)))
+                    params[d(match[1])] = d(match[2]);
+                window.params = params;
+            })();
+
+            var roomid = '';
+            if (localStorage.getItem(connection.socketMessageEvent)) {
+                roomid = localStorage.getItem(connection.socketMessageEvent);
+            } else {
+                roomid = connection.token();
+            }
+            document.getElementById('room-id').value = roomid;
+            document.getElementById('room-id').onkeyup = function() {
+                localStorage.setItem(connection.socketMessageEvent, this.value);
+            };
+
+            var hashString = location.hash.replace('#', '');
+            if(hashString.length && hashString.indexOf('comment-') == 0) {
+              hashString = '';
+            }
+            
+            //add code auto open room
+            if(hashString.length){
+              
+                connection.openOrJoin(hashString,function(isRoomExists,roomid){
+                    if(!isRoomExists){
+                        //alert("room not exist");
+                      
+                    }
+                });
+            }
+            var roomid = params.roomid;
+            if(!roomid && hashString.length) {
+                roomid = hashString;
+            }
+            
+            if(roomid && roomid.length) {
+                document.getElementById('room-id').value = roomid;
+                localStorage.setItem(connection.socketMessageEvent, roomid);
+
+                // auto-join-room
+                (function reCheckRoomPresence() {
+                    connection.checkPresence(roomid, function(isRoomExists) {
+                        if(!isRoomExists) {
+                            // connection.open(roomid);
+                            // return;
+                        }
+
+                        setTimeout(reCheckRoomPresence, 5000);
+                    });
+                })();
+            }
+</script>
+
+<script src="https://pantechonline.com:9001/dev/webrtc-handler.js"></script>
+<script>
+
+</script>
+	
+</body>
+</html>
